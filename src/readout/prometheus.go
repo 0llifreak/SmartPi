@@ -3,14 +3,17 @@
 package main
 
 import (
-	"github.com/nDenerserve/SmartPi/src/smartpi"
+	"github.com/nDenerserve/SmartPi/models"
+	"github.com/nDenerserve/SmartPi/repository/config"
+	"github.com/nDenerserve/SmartPi/smartpi"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const metricsNamespace = "smartpi"
 
 var (
-	currentMetric = prometheus.NewGaugeVec(
+	currentMetric = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: metricsNamespace,
 			Name:      "amps",
@@ -18,7 +21,7 @@ var (
 		},
 		[]string{"phase"},
 	)
-	voltageMetric = prometheus.NewGaugeVec(
+	voltageMetric = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: metricsNamespace,
 			Name:      "volts",
@@ -26,7 +29,7 @@ var (
 		},
 		[]string{"phase"},
 	)
-	activePowerMetirc = prometheus.NewGaugeVec(
+	activePowerMetirc = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: metricsNamespace,
 			Name:      "active_watts",
@@ -34,7 +37,7 @@ var (
 		},
 		[]string{"phase"},
 	)
-	cosphiMetric = prometheus.NewGaugeVec(
+	cosphiMetric = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: metricsNamespace,
 			Name:      "phase_angle",
@@ -42,7 +45,7 @@ var (
 		},
 		[]string{"phase"},
 	)
-	frequencyMetric = prometheus.NewGaugeVec(
+	frequencyMetric = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: metricsNamespace,
 			Name:      "frequency_hertz",
@@ -50,7 +53,7 @@ var (
 		},
 		[]string{"phase"},
 	)
-	apparentPowerMetric = prometheus.NewGaugeVec(
+	apparentPowerMetric = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: metricsNamespace,
 			Name:      "apparent_power_volt_amps",
@@ -58,7 +61,7 @@ var (
 		},
 		[]string{"phase"},
 	)
-	reactivePowerMetric = prometheus.NewGaugeVec(
+	reactivePowerMetric = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: metricsNamespace,
 			Name:      "reactive_power_volt_amps",
@@ -66,7 +69,7 @@ var (
 		},
 		[]string{"phase"},
 	)
-	powerFactorMetric = prometheus.NewGaugeVec(
+	powerFactorMetric = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: metricsNamespace,
 			Name:      "power_factor_ratio",
@@ -74,11 +77,32 @@ var (
 		},
 		[]string{"phase"},
 	)
+	wattHoursConsumedMetric = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: metricsNamespace,
+			Name:      "consumed_watt_hours_total",
+			Help:      "Accumulated watt hours consumed",
+		},
+		[]string{"phase"},
+	)
+	wattHoursProducedMetric = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: metricsNamespace,
+			Name:      "produced_watt_hours_total",
+			Help:      "Accumulated watt hours produced",
+		},
+		[]string{"phase"},
+	)
 )
 
-func updatePrometheusMetrics(v *smartpi.ADE7878Readout) {
-	currentMetric.WithLabelValues("N").Set(v.Current[smartpi.PhaseN])
+func updatePrometheusMetrics(v *smartpi.ADE7878Readout, c *config.Config) {
+	currentMetric.WithLabelValues("N").Set(v.Current[models.PhaseN])
 	for _, p := range smartpi.MainPhases {
+		// Skip updating metrics where the phase is not measured.
+		if !c.MeasureCurrent[p] && !c.MeasureVoltage[p] {
+			continue
+		}
+
 		label := p.String()
 		currentMetric.WithLabelValues(label).Set(v.Current[p])
 		voltageMetric.WithLabelValues(label).Set(v.Voltage[p])
@@ -88,5 +112,13 @@ func updatePrometheusMetrics(v *smartpi.ADE7878Readout) {
 		apparentPowerMetric.WithLabelValues(label).Set(v.ApparentPower[p])
 		reactivePowerMetric.WithLabelValues(label).Set(v.ReactivePower[p])
 		powerFactorMetric.WithLabelValues(label).Set(v.PowerFactor[p])
+
+		// Use the active watts and sample rate to calculate an estimate of watt hours.
+		wattHours := v.ActiveWatts[p] / (3600.0 * float64(c.Samplerate))
+		if wattHours >= 0 {
+			wattHoursConsumedMetric.WithLabelValues(label).Add(wattHours)
+		} else {
+			wattHoursProducedMetric.WithLabelValues(label).Add(-wattHours)
+		}
 	}
 }

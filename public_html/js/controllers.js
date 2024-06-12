@@ -1,8 +1,11 @@
 smartpi.controller('MainCtrl', function($scope, $Momentary, $Linechart, $GetDatabaseData, $GetDayData, $interval, $GetSoftwareInformations, $mdSidenav) {
 
-    $scope.nodelocation = window.location.protocol + '//' + window.location.hostname + ':1880';
-    $scope.networklocation = window.location.protocol + '//' + window.location.hostname + ':8080';
-    $scope.grafanalocation = window.location.protocol + '//' + window.location.hostname + ':3000';
+    $scope.nodelocation = 'http://' + window.location.hostname + ':1880';
+    $scope.networklocation = 'http://' + window.location.hostname + ':8080';
+    $scope.grafanalocation = 'http://' + window.location.hostname + ':3000';
+    $scope.influxdblocation = 'http://' + window.location.hostname + ':8086';
+    $scope.filebrowserlocation = 'http://' + window.location.hostname + ':4201';    
+    $scope.websshlocation = 'https://' + window.location.hostname + ':4200';
 
     $scope.toShow = "dashboard";
 
@@ -37,6 +40,8 @@ smartpi.controller('MainCtrl', function($scope, $Momentary, $Linechart, $GetData
     $GetSoftwareInformations.get({},
         function(softwareinformations) {
             $scope.softwareversion = softwareinformations.Softwareversion;
+            $scope.hardwaremodel = softwareinformations.Hardwaremodel;
+            $scope.hardwareserial = softwareinformations.Hardwareserial;
         });
 
     getActualValues();

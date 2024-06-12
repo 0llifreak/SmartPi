@@ -88,10 +88,13 @@
             </a>
             <ul>
                 <li><a href="index.html" class="active"><span></span></a></li>
-                <li><a href="export.html"><span></span></a></li>
+                <li><a ng-href="{{influxdblocation}}" target="_blank"><span></span></a></li>
+                <!-- <li><a href="export.html"><span></span></a></li> -->
                 <li><a ng-href="{{nodelocation}}" target="_blank"><span></span></a></li>
                 <li><a ng-href="{{grafanalocation}}" target="_blank"><span></span></a></li>
                 <li><a href="settings.html"><span></span></a></li>
+                <li><a ng-href="{{filebrowserlocation}}" target="_blank"><span></span></a></li>
+                <li><a ng-href="{{websshlocation}}" target="_blank"><span></span></a></li>
                 <!-- <li><a ng-href="{{networklocation}}" target="_blank"><span></span></a></li> -->
                 <!-- <li><a href="#0"><span></span></a></li> -->
                 <!-- <li><a href="#0"><span></span></a></li> -->
@@ -108,7 +111,7 @@
             <span flex></span>
             <div hide show-gt-sm>
                 <img src="img/enerserve.png" alt="enerserve logo" height="52">
-                <br>
+                </br>
                 <span style="font-size: small;">Version: {{softwareversion}}</span>
             </div>
             <div show hide-gt-sm>

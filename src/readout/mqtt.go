@@ -7,14 +7,16 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/nDenerserve/SmartPi/src/smartpi"
+	"github.com/nDenerserve/SmartPi/models"
+	"github.com/nDenerserve/SmartPi/repository/config"
+	"github.com/nDenerserve/SmartPi/smartpi"
 	log "github.com/sirupsen/logrus"
 )
 
-func newMQTTClient(c *smartpi.Config) (mqttclient mqtt.Client) {
+func newMQTTClient(c *config.Config) (mqttclient mqtt.Client) {
 	log.Debugf("Connecting to MQTT broker at %s", (c.MQTTbroker + ":" + c.MQTTbrokerport))
 	//create a MQTTClientOptions struct setting the broker address, clientid, user and password
-	opts := mqtt.NewClientOptions().AddBroker(c.MQTTbrokerScheme + c.MQTTbroker + ":" + c.MQTTbrokerport)
+	opts := mqtt.NewClientOptions().AddBroker(c.MQTTbrokerscheme + c.MQTTbroker + ":" + c.MQTTbrokerport)
 	opts.SetClientID("SmartPi-" + c.Name)
 	opts.SetUsername(c.MQTTuser)
 	opts.SetPassword(c.MQTTpass)
@@ -35,8 +37,7 @@ func newMQTTClient(c *smartpi.Config) (mqttclient mqtt.Client) {
 func publishMQTT(m mqtt.Client, status *bool, t string, v float64) bool {
 	if *status {
 		log.Debugf("  -> ", t, ":", v)
-		token := m.Publish(t, 0, false, strconv.FormatFloat(v, 'f', 2, 32))
-
+		token := m.Publish(t, 0, false, strconv.FormatFloat(v, 'f', 6, 64))
 		if !token.WaitTimeout(2 * time.Second) {
 			log.Debugf("  MQTT Timeout. Stopping MQTT sequence.")
 			return false
@@ -49,7 +50,7 @@ func publishMQTT(m mqtt.Client, status *bool, t string, v float64) bool {
 	return false
 }
 
-func publishMQTTReadouts(c *smartpi.Config, mqttclient mqtt.Client, values *smartpi.ADE7878Readout, wattHourBalanced float64) {
+func publishMQTTReadouts(c *config.Config, mqttclient mqtt.Client, values *smartpi.ADE7878Readout, wattHourBalanced float64) {
 	var pTotalBalanced float64
 	//[basetopic]/[node]/[keyname]
 	// Let's try to (re-)connect if MQTT connection was lost.
@@ -63,7 +64,7 @@ func publishMQTTReadouts(c *smartpi.Config, mqttclient mqtt.Client, values *smar
 
 		// Status is used to stop MQTT publication sequence in case of first error.
 		var status = true
-		publishMQTT(mqttclient, &status, c.MQTTtopic+"/I4", values.Current[smartpi.PhaseN])
+		publishMQTT(mqttclient, &status, c.MQTTtopic+"/I4", values.Current[models.PhaseN])
 		for _, p := range smartpi.MainPhases {
 			label := p.PhaseNumber()
 			publishMQTT(mqttclient, &status, c.MQTTtopic+"/I"+label, values.Current[p])
@@ -84,13 +85,13 @@ func publishMQTTReadouts(c *smartpi.Config, mqttclient mqtt.Client, values *smar
 	}
 }
 
-func publishMQTTCalculations(c *smartpi.Config, mqttclient mqtt.Client, ec1m float64, ep1m float64, cc float64, pc float64) {
+func publishMQTTCalculations(c *config.Config, mqttclient mqtt.Client, ec1m float64, ep1m float64, cc float64, pc float64) {
 
 	//[basetopic]/[node]/[keyname]
 	// Let's try to (re-)connect if MQTT connection was lost.
 	if !mqttclient.IsConnected() {
 		if mqtttoken := mqttclient.Connect(); mqtttoken.Wait() && mqtttoken.Error() != nil {
-			log.Debugf("Connecting to MQTT broker failed. %q", mqtttoken.Error())
+			log.Errorf("Connecting to MQTT broker failed. %q", mqtttoken.Error())
 		}
 	}
 	if mqttclient.IsConnected() {

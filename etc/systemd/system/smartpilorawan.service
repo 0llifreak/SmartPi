@@ -1,0 +1,25 @@
+[Unit]
+Description=SmartPiLoRaWAN
+Wants=syslog.target network.target
+After=syslog.target network.target remote-fs.target nss-lookup.target systemd-journald-dev-log.socket
+
+[Unit]
+Requires=smartpireadout.service
+After=smartpireadout.service
+
+[Service]
+Type=simple
+PIDFile=/run/smartpilorawan.pid
+ExecStart=/usr/local/bin/smartpilorawan
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=2s
+StandardOutput=null
+StandardError=journal
+RemainAfterExit=no
+User=smartpi
+StartLimitBurst=0
+
+[Install]
+WantedBy=multi-user.target
+ 

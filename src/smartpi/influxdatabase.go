@@ -5,6 +5,7 @@ import (
 	// "fmt"
 	// "os"
 
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -12,8 +13,12 @@ import (
 	"strings"
 	"time"
 
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	client "github.com/influxdata/influxdb1-client/v2"
-	"github.com/nDenerserve/SmartPi/src/smartpi/network"
+
+	"github.com/nDenerserve/SmartPi/models"
+	"github.com/nDenerserve/SmartPi/repository/config"
+	"github.com/nDenerserve/SmartPi/smartpi/network"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,7 +27,7 @@ import (
 // 	Current_1, Current_2, Current_3, Current_4, Voltage_1, Voltage_2, Voltage_3, Power_1, Power_2, Power_3, Cosphi_1, Cosphi_2, Cosphi_3, Frequency_1, Frequency_2, Frequency_3, Energy_pos_1, Energy_pos_2, Energy_pos_3, Energy_neg_1, Energy_neg_2, Energy_neg_3 float64
 // }
 
-func InsertInfluxData(c *Config, t time.Time, v ReadoutAccumulator, consumedWattHourBalanced float64, producedWattHourBalanced float64) {
+func InsertInfluxDataV1(c *config.Config, t time.Time, v ReadoutAccumulator, consumedWattHourBalanced float64, producedWattHourBalanced float64) {
 
 	dbc, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     c.Influxdatabase,
@@ -44,28 +49,28 @@ func InsertInfluxData(c *Config, t time.Time, v ReadoutAccumulator, consumedWatt
 	macaddress := network.GetMacAddr()
 	tags := map[string]string{"serial": macaddress, "type": "electric"}
 	fields := map[string]interface{}{
-		"I1":      float64(v.Current[PhaseA]),
-		"I2":      float64(v.Current[PhaseB]),
-		"I3":      float64(v.Current[PhaseC]),
-		"I4":      float64(v.Current[PhaseN]),
-		"U1":      float64(v.Voltage[PhaseA]),
-		"U2":      float64(v.Voltage[PhaseB]),
-		"U3":      float64(v.Voltage[PhaseC]),
-		"P1":      float64(v.ActiveWatts[PhaseA]),
-		"P2":      float64(v.ActiveWatts[PhaseB]),
-		"P3":      float64(v.ActiveWatts[PhaseC]),
-		"CosPhi1": float64(v.CosPhi[PhaseA]),
-		"CosPhi2": float64(v.CosPhi[PhaseB]),
-		"CosPhi3": float64(v.CosPhi[PhaseC]),
-		"F1":      float64(v.Frequency[PhaseA]),
-		"F2":      float64(v.Frequency[PhaseB]),
-		"F3":      float64(v.Frequency[PhaseC]),
-		"Ec1":     float64(v.WattHoursConsumed[PhaseA]),
-		"Ec2":     float64(v.WattHoursConsumed[PhaseB]),
-		"Ec3":     float64(v.WattHoursConsumed[PhaseC]),
-		"Ep1":     float64(v.WattHoursProduced[PhaseA]),
-		"Ep2":     float64(v.WattHoursProduced[PhaseB]),
-		"Ep3":     float64(v.WattHoursProduced[PhaseC]),
+		"I1":      float64(v.Current[models.PhaseA]),
+		"I2":      float64(v.Current[models.PhaseB]),
+		"I3":      float64(v.Current[models.PhaseC]),
+		"I4":      float64(v.Current[models.PhaseN]),
+		"U1":      float64(v.Voltage[models.PhaseA]),
+		"U2":      float64(v.Voltage[models.PhaseB]),
+		"U3":      float64(v.Voltage[models.PhaseC]),
+		"P1":      float64(v.ActiveWatts[models.PhaseA]),
+		"P2":      float64(v.ActiveWatts[models.PhaseB]),
+		"P3":      float64(v.ActiveWatts[models.PhaseC]),
+		"CosPhi1": float64(v.CosPhi[models.PhaseA]),
+		"CosPhi2": float64(v.CosPhi[models.PhaseB]),
+		"CosPhi3": float64(v.CosPhi[models.PhaseC]),
+		"F1":      float64(v.Frequency[models.PhaseA]),
+		"F2":      float64(v.Frequency[models.PhaseB]),
+		"F3":      float64(v.Frequency[models.PhaseC]),
+		"Ec1":     float64(v.WattHoursConsumed[models.PhaseA]),
+		"Ec2":     float64(v.WattHoursConsumed[models.PhaseB]),
+		"Ec3":     float64(v.WattHoursConsumed[models.PhaseC]),
+		"Ep1":     float64(v.WattHoursProduced[models.PhaseA]),
+		"Ep2":     float64(v.WattHoursProduced[models.PhaseB]),
+		"Ep3":     float64(v.WattHoursProduced[models.PhaseC]),
 		"bEc":     float64(consumedWattHourBalanced),
 		"bEp":     float64(producedWattHourBalanced),
 	}
@@ -82,7 +87,55 @@ func InsertInfluxData(c *Config, t time.Time, v ReadoutAccumulator, consumedWatt
 	}
 }
 
-func InsertFastData(c *Config, t time.Time, values *ADE7878Readout) {
+func InsertInfluxData(c *config.Config, t time.Time, v ReadoutAccumulator, consumedWattHourBalanced float64, producedWattHourBalanced float64) {
+
+	if c.Influxversion == "1" {
+		InsertInfluxDataV1(c, t, v, consumedWattHourBalanced, producedWattHourBalanced)
+		return
+	}
+
+	client := influxdb2.NewClient(c.Influxdatabase, c.InfluxAPIToken)
+	defer client.Close()
+
+	writeAPI := client.WriteAPIBlocking(c.InfluxOrg, c.InfluxBucket)
+
+	log.Debug("InfluxDB: " + c.Influxdatabase + "  User: " + c.Influxuser + "  Password: " + c.Influxpassword)
+
+	// Create a point and add to batch
+	macaddress := network.GetMacAddr()
+	tags := map[string]string{"mac": macaddress, "type": "electric"}
+	fields := map[string]interface{}{
+		"I1":      float64(v.Current[models.PhaseA]),
+		"I2":      float64(v.Current[models.PhaseB]),
+		"I3":      float64(v.Current[models.PhaseC]),
+		"I4":      float64(v.Current[models.PhaseN]),
+		"U1":      float64(v.Voltage[models.PhaseA]),
+		"U2":      float64(v.Voltage[models.PhaseB]),
+		"U3":      float64(v.Voltage[models.PhaseC]),
+		"P1":      float64(v.ActiveWatts[models.PhaseA]),
+		"P2":      float64(v.ActiveWatts[models.PhaseB]),
+		"P3":      float64(v.ActiveWatts[models.PhaseC]),
+		"CosPhi1": float64(v.CosPhi[models.PhaseA]),
+		"CosPhi2": float64(v.CosPhi[models.PhaseB]),
+		"CosPhi3": float64(v.CosPhi[models.PhaseC]),
+		"F1":      float64(v.Frequency[models.PhaseA]),
+		"F2":      float64(v.Frequency[models.PhaseB]),
+		"F3":      float64(v.Frequency[models.PhaseC]),
+		"Ec1":     float64(v.WattHoursConsumed[models.PhaseA]),
+		"Ec2":     float64(v.WattHoursConsumed[models.PhaseB]),
+		"Ec3":     float64(v.WattHoursConsumed[models.PhaseC]),
+		"Ep1":     float64(v.WattHoursProduced[models.PhaseA]),
+		"Ep2":     float64(v.WattHoursProduced[models.PhaseB]),
+		"Ep3":     float64(v.WattHoursProduced[models.PhaseC]),
+		"bEc":     float64(consumedWattHourBalanced),
+		"bEp":     float64(producedWattHourBalanced),
+	}
+	pt := influxdb2.NewPoint("data", tags, fields, time.Now())
+
+	writeAPI.WritePoint(context.Background(), pt)
+}
+
+func InsertFastDataV1(c *config.Config, t time.Time, values *ADE7878Readout) {
 
 	dbc, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     c.Influxdatabase,
@@ -104,16 +157,16 @@ func InsertFastData(c *Config, t time.Time, values *ADE7878Readout) {
 	macaddress := network.GetMacAddr()
 	tags := map[string]string{"serial": macaddress, "type": "electric"}
 	fields := map[string]interface{}{
-		"I1": float64(values.Current[PhaseA]),
-		"I2": float64(values.Current[PhaseB]),
-		"I3": float64(values.Current[PhaseC]),
-		"I4": float64(values.Current[PhaseN]),
-		"U1": float64(values.Voltage[PhaseA]),
-		"U2": float64(values.Voltage[PhaseB]),
-		"U3": float64(values.Voltage[PhaseC]),
-		"P1": float64(values.ActiveWatts[PhaseA]),
-		"P2": float64(values.ActiveWatts[PhaseB]),
-		"P3": float64(values.ActiveWatts[PhaseC]),
+		"I1": float64(values.Current[models.PhaseA]),
+		"I2": float64(values.Current[models.PhaseB]),
+		"I3": float64(values.Current[models.PhaseC]),
+		"I4": float64(values.Current[models.PhaseN]),
+		"U1": float64(values.Voltage[models.PhaseA]),
+		"U2": float64(values.Voltage[models.PhaseB]),
+		"U3": float64(values.Voltage[models.PhaseC]),
+		"P1": float64(values.ActiveWatts[models.PhaseA]),
+		"P2": float64(values.ActiveWatts[models.PhaseB]),
+		"P3": float64(values.ActiveWatts[models.PhaseC]),
 	}
 	pt, err := client.NewPoint("data", tags, fields, time.Now())
 	log.Info(fields)
@@ -129,7 +182,39 @@ func InsertFastData(c *Config, t time.Time, values *ADE7878Readout) {
 	}
 }
 
-func ReadCSVData(c *Config, starttime time.Time, endtime time.Time) string {
+func InsertFastData(c *config.Config, t time.Time, values *ADE7878Readout) {
+
+	if c.Influxversion == "1" {
+		InsertFastDataV1(c, t, values)
+		return
+	}
+
+	client := influxdb2.NewClient(c.Influxdatabase, c.InfluxAPIToken)
+	defer client.Close()
+
+	writeAPI := client.WriteAPIBlocking(c.InfluxOrg, c.InfluxBucket)
+
+	// Create a point and add to batch
+	macaddress := network.GetMacAddr()
+	tags := map[string]string{"mac": macaddress, "type": "electric"}
+	fields := map[string]interface{}{
+		"I1": float64(values.Current[models.PhaseA]),
+		"I2": float64(values.Current[models.PhaseB]),
+		"I3": float64(values.Current[models.PhaseC]),
+		"I4": float64(values.Current[models.PhaseN]),
+		"U1": float64(values.Voltage[models.PhaseA]),
+		"U2": float64(values.Voltage[models.PhaseB]),
+		"U3": float64(values.Voltage[models.PhaseC]),
+		"P1": float64(values.ActiveWatts[models.PhaseA]),
+		"P2": float64(values.ActiveWatts[models.PhaseB]),
+		"P3": float64(values.ActiveWatts[models.PhaseC]),
+	}
+	pt := influxdb2.NewPoint("data", tags, fields, time.Now())
+
+	writeAPI.WritePoint(context.Background(), pt)
+}
+
+func ReadCSVData(c *config.Config, starttime time.Time, endtime time.Time) string {
 
 	loc, _ := time.LoadLocation("UTC")
 	// endtime := time.Now()
@@ -155,7 +240,7 @@ func ReadCSVData(c *Config, starttime time.Time, endtime time.Time) string {
 	return stringbody
 }
 
-func ExampleClient_query(c *Config) {
+func ExampleClient_query(c *config.Config) {
 
 	dbc, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     c.Influxdatabase,
@@ -167,7 +252,7 @@ func ExampleClient_query(c *Config) {
 	}
 	defer dbc.Close()
 
-	q := client.NewQuery("SELECT * FROM MeteringData", "MeteringData", "ns")
+	q := client.NewQuery("SELECT * FROM meteringdata", "meteringdata", "ns")
 	if response, err := dbc.Query(q); err == nil && response.Error() == nil {
 		fmt.Println(response.Results)
 	}

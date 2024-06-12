@@ -1,8 +1,11 @@
 smartpi.controller('MainCtrl', function($scope, $rootScope, $mdDialog, $interval, UserData, $GetConfigData, $SetConfigData, $GetUserData, $GetSoftwareInformations, $ScanWifi, $GetNetworkConnections, $DeleteWifiConnection, $CreateWifiConnection, $ActivateWifiConnection, $DeactivateWifiConnection, $ChangeWifiSecurity) {
 
-        $scope.nodelocation = window.location.protocol + '//' + window.location.hostname + ':1880';
-        $scope.networklocation = window.location.protocol + '//' + window.location.hostname + ':8080';
-        $scope.grafanalocation = window.location.protocol + '//' + window.location.hostname + ':3000';
+        $scope.nodelocation = 'http://' + window.location.hostname + ':1880';
+        $scope.networklocation = 'http://' + window.location.hostname + ':8080';
+        $scope.grafanalocation = 'http://' + window.location.hostname + ':3000';
+        $scope.influxdblocation = 'http://' + window.location.hostname + ':8086';
+        $scope.filebrowserlocation = 'http://' + window.location.hostname + ':4201';    
+        $scope.websshlocation = 'https://' + window.location.hostname + ':4200';
 
 
         $scope.smartpi = {};
@@ -21,9 +24,11 @@ smartpi.controller('MainCtrl', function($scope, $rootScope, $mdDialog, $interval
         $scope.measurement.voltage.phase3 = {};
 
         $scope.mqtt = {};
+        $scope.emeter = {};
         $scope.ftp = {};
         $scope.mobile = {};
         $scope.csv = {};
+        $scope.influx = {};
 
         $scope.database = {};
         $scope.database.database = {};
@@ -201,6 +206,12 @@ smartpi.controller('MainCtrl', function($scope, $rootScope, $mdDialog, $interval
                 case 'mqtt':
                     $scope.isMqttSave = true;
                     break;
+                case 'emeter':
+                    $scope.isEmeterSave = true;
+                    break;
+                case 'database':
+                    $scope.isDatabaseSave = true;
+                    break;
                 case 'ftp':
                     $scope.isFtpSave = true;
                     break;
@@ -233,6 +244,12 @@ smartpi.controller('MainCtrl', function($scope, $rootScope, $mdDialog, $interval
                     break;
                 case 'mqtt':
                     $scope.isMqttSave = false;
+                    break;
+                case 'emeter':
+                    $scope.isEmeterSave = false;
+                    break;
+                case 'database':
+                    $scope.isDatabaseSave = false;
                     break;
                 case 'ftp':
                     $scope.isFtpSave = false;
@@ -317,11 +334,33 @@ smartpi.controller('MainCtrl', function($scope, $rootScope, $mdDialog, $interval
                 case 'mqtt':
 
                     jsonConfigObj.MQTTenabled = $scope.mqtt.enabled;
+                    jsonConfigObj.MQTTbrokerscheme = $scope.mqtt.brokerScheme;
                     jsonConfigObj.MQTTbroker = $scope.mqtt.brokerUrl;
                     jsonConfigObj.MQTTbrokerport = $scope.mqtt.brokerPort;
                     jsonConfigObj.MQTTuser = $scope.mqtt.username;
                     jsonConfigObj.MQTTpass = $scope.mqtt.password;
                     jsonConfigObj.MQTTtopic = $scope.mqtt.topic;
+                    break;
+                
+                case 'emeter':
+
+                    jsonConfigObj.EmeterEnabled = $scope.emeter.enabled;
+                    jsonConfigObj.EmeterMulticastAddress = $scope.emeter.multicastAddress;
+                    jsonConfigObj.EmeterMulticastPort = $scope.emeter.multicastPort;
+                    jsonConfigObj.EmeterSusyID = $scope.emeter.susyId;
+                    jsonConfigObj.EmeterSerial = $scope.emeter.serial;
+                    break;
+
+                case 'database':
+
+                    jsonConfigObj.DatabaseEnabled = $scope.influx.enabled;
+                    jsonConfigObj.InfluxAPIToken = $scope.influx.influxAPItoken;
+                    jsonConfigObj.Influxdatabase = $scope.influx.influxdatabase;
+                    jsonConfigObj.Influxuser = $scope.influx.username;
+                    jsonConfigObj.Influxpassword = $scope.influx.passwort;
+                    jsonConfigObj.InfluxOrg = $scope.influx.influxOrg;
+                    jsonConfigObj.InfluxBucket = $scope.influx.influxBucket;
+
                     break;
 
                 case 'ftp':
@@ -346,7 +385,7 @@ smartpi.controller('MainCtrl', function($scope, $rootScope, $mdDialog, $interval
 
                     jsonConfigObj.CSVdecimalpoint = $scope.csv.decimalpoint;
                     jsonConfigObj.CSVtimeformat = $scope.csv.timeformat;
-                    jsonConfigObj.database_enabled = $scope.database.database.enabled;
+                    jsonConfigObj.SQLLiteEnabled = $scope.database.database.enabled;
                     jsonConfigObj.DatabaseDir = $scope.database.database.directory;
                     jsonConfigObj.counter_enabled = $scope.database.counter.enabled;
                     jsonConfigObj.CounterDir = $scope.database.counter.directory;
@@ -429,11 +468,25 @@ smartpi.controller('MainCtrl', function($scope, $rootScope, $mdDialog, $interval
                     $scope.measurement.voltage.phase2.suppose = data.Voltage[2];
                     $scope.measurement.voltage.phase3.suppose = data.Voltage[3];
                     $scope.mqtt.enabled = data.MQTTenabled;
+                    $scope.mqtt.brokerScheme = data.MQTTbrokerscheme
                     $scope.mqtt.brokerUrl = data.MQTTbroker;
                     $scope.mqtt.brokerPort = data.MQTTbrokerport;
                     $scope.mqtt.username = data.MQTTuser;
                     $scope.mqtt.password = data.MQTTpass;
                     $scope.mqtt.topic = data.MQTTtopic;
+                    $scope.emeter.enabled = data.EmeterEnabled;
+                    $scope.emeter.multicastAddress = data.EmeterMulticastAddress;
+                    $scope.emeter.multicastPort = data.EmeterMulticastPort;
+                    $scope.emeter.susyId = data.EmeterSusyID;
+                    $scope.emeter.serial = data.EmeterSerial;
+
+                    $scope.influx.enabled = data.DatabaseEnabled;
+                    $scope.influx.influxAPItoken = data.InfluxAPIToken;
+                    $scope.influx.influxdatabase = data.Influxdatabase;
+                    $scope.influx.username = data.Influxuser;
+                    $scope.influx.password = data.Influxpassword;
+                    $scope.influx.influxOrg = data.InfluxOrg;
+                    $scope.influx.influxBucket = data.InfluxBucket;
                     $scope.ftp.enabled = data.FTPupload;
                     $scope.ftp.serverUrl = data.FTPserver;
                     $scope.ftp.path = data.FTPpath;
@@ -447,7 +500,7 @@ smartpi.controller('MainCtrl', function($scope, $rootScope, $mdDialog, $interval
                     $scope.csv.decimalpoint = data.CSVdecimalpoint;
                     $scope.csv.timeformat = data.CSVtimeformat;
                     $scope.database.database.directory = data.DatabaseDir;
-                    $scope.database.database.enabled = data.DatabaseEnabled;
+                    $scope.database.database.enabled = data.SQLLiteEnabled;
                     $scope.database.counter.enabled = data.CounterEnabled;
                     $scope.database.counter.directory = data.CounterDir;
                     $scope.webserver.port = data.WebserverPort;

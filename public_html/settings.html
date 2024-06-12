@@ -86,10 +86,13 @@
             </a>
             <ul>
                 <li><a href="index.html" class="active"><span></span></a></li>
-                <li><a href="export.html"><span></span></a></li>
+                <li><a ng-href="{{influxdblocation}}" target="_blank"><span></span></a></li>
+                <!-- <li><a href="export.html"><span></span></a></li> -->
                 <li><a ng-href="{{nodelocation}}" target="_blank"><span></span></a></li>
                 <li><a ng-href="{{grafanalocation}}" target="_blank"><span></span></a></li>
                 <li><a href="settings.html" class="active"><span></span></a></li>
+                <li><a ng-href="{{filebrowserlocation}}" target="_blank"><span></span></a></li>
+                <li><a ng-href="{{websshlocation}}" target="_blank"><span></span></a></li>
                 <!-- <li><a ng-href="{{networklocation}}" target="_blank"><span></span></a></li> -->
 
                 <!-- <li><a href="#0"><span></span></a></li> -->
@@ -170,11 +173,13 @@
                                 <label>Current Sensor</label>
                                 <md-select ng-model="measurement.current.phase1.sensor" ng-change="showSaveButton('measurement')">
                                     <md-option value="YHDC_SCT013">YHDC_SCT013</md-option>
+                                    <md-option value="YHDC_SCT4333QL">YHDC_SCT4333QL</md-option>
                                     <md-option value="400A/033V">400A/0.33V</md-option>
                                     <md-option value="X/1A">Current transformer 1A sec current</md-option>
+                                    <md-option value="X/5A">Current transformer 5A sec current (only SmartPi 5A Version)</md-option>
                                 </md-select>
                             </md-input-container>
-                            <md-input-container class="md-block" flex="8" ng-if="measurement.current.phase1.sensor=='X/1A'">
+                            <md-input-container class="md-block" flex="8" ng-if="measurement.current.phase1.sensor=='X/1A' || measurement.current.phase1.sensor=='X/5A'">
                                 <label>Secondary current [A]</label>
                                 <input name="PrimarycurrentPhase1" ng-model="measurement.current.phase1.primarycurrent" ng-change="showSaveButton('measurement')">
                             </md-input-container>
@@ -190,11 +195,13 @@
                                 <label>Current Sensor</label>
                                 <md-select ng-model="measurement.current.phase2.sensor" ng-change="showSaveButton('measurement')">
                                     <md-option value="YHDC_SCT013">YHDC_SCT013</md-option>
+                                    <md-option value="YHDC_SCT4333QL">YHDC_SCT4333QL</md-option>
                                     <md-option value="400A/033V">400A/0.33V</md-option>
-                                    <md-option ng-checked="swedishCheck" value="X/1A">Current transformer 1A sec current</md-option>
+                                    <md-option value="X/1A">Current transformer 1A sec current</md-option>
+                                    <md-option value="X/5A">Current transformer 5A sec current (only SmartPi 5A Version)</md-option>
                                 </md-select>
                             </md-input-container>
-                            <md-input-container class="md-block" flex="8" ng-if="measurement.current.phase2.sensor=='X/1A'">
+                            <md-input-container class="md-block" flex="8" ng-if="measurement.current.phase1.sensor=='X/1A' || measurement.current.phase1.sensor=='X/5A'">
                                 <label>Secondary current [A]</label>
                                 <input name="PrimarycurrentPhase2" ng-model="measurement.current.phase2.primarycurrent" ng-change="showSaveButton('measurement')">
                             </md-input-container>
@@ -210,11 +217,13 @@
                                 <label>Current Sensor</label>
                                 <md-select ng-model="measurement.current.phase3.sensor" ng-change="showSaveButton('measurement')">
                                     <md-option value="YHDC_SCT013">YHDC_SCT013</md-option>
+                                    <md-option value="YHDC_SCT4333QL">YHDC_SCT4333QL</md-option>
                                     <md-option value="400A/033V">400A/0.33V</md-option>
                                     <md-option value="X/1A">Current transformer 1A sec current</md-option>
+                                    <md-option value="X/5A">Current transformer 5A sec current (only SmartPi 5A Version)</md-option>
                                 </md-select>
                             </md-input-container>
-                            <md-input-container class="md-block" flex="8" ng-if="measurement.current.phase3.sensor=='X/1A'">
+                            <md-input-container class="md-block" flex="8" ng-if="measurement.current.phase1.sensor=='X/1A' || measurement.current.phase1.sensor=='X/5A'">
                                 <label>Secondary current [A]</label>
                                 <input name="PrimarycurrentPhase3" ng-model="measurement.current.phase3.primarycurrent" ng-change="showSaveButton('measurement')">
                             </md-input-container>
@@ -230,10 +239,13 @@
                                 <label>Current Sensor</label>
                                 <md-select ng-model="measurement.current.phase4.sensor" ng-change="showSaveButton('measurement')">
                                     <md-option value="YHDC_SCT013">YHDC_SCT013</md-option>
+                                    <md-option value="YHDC_SCT4333QL">YHDC_SCT4333QL</md-option>
+                                    <md-option value="400A/033V">400A/0.33V</md-option>
                                     <md-option value="X/1A">Current transformer 1A sec current</md-option>
+                                    <md-option value="X/5A">Current transformer 5A sec current (only SmartPi 5A Version)</md-option>
                                 </md-select>
                             </md-input-container>
-                            <md-input-container class="md-block" flex="8" ng-if="measurement.current.phase4.sensor=='X/1A'">
+                            <md-input-container class="md-block" flex="8" ng-if="measurement.current.phase1.sensor=='X/1A' || measurement.current.phase1.sensor=='X/5A'">
                                 <label>Secondary current [A]</label>
                                 <input name="PrimarycurrentPhase4" ng-model="measurement.current.phase4.primarycurrent" ng-change="showSaveButton('measurement')">
                             </md-input-container>
@@ -281,6 +293,14 @@
                         </div>
 
                         <div layout="row" layout-xs="column">
+                            <md-input-container style="margin-right: 10px;">
+                                <label>MQTT broker scheme</label>
+                                <md-select ng-model="mqtt.brokerScheme" ng-change="showSaveButton('mqtt')">
+                                    <md-option value="tcp://">tcp://</md-option>
+                                    <md-option value="ssl://">ssl://</md-option>
+                                    <md-option value="ws://">ws://</md-option>
+                                </md-select>
+                            </md-input-container>
                             <md-input-container flex="25">
                                 <label>MQTT broker url</label>
                                 <input required name="mqttbrokerurl" ng-model="mqtt.brokerUrl" ng-change="showSaveButton('mqtt')">
@@ -322,6 +342,103 @@
                             </md-input-container>
                         </div>
                         <md-button ng-style="{'visibility': isMqttSave?'visible':'hidden'}" class="md-raised md-primary" ng-click="saveConfiguration('mqtt')">Save</md-button>
+                    </md-content>
+                </md-tab>
+                <md-tab label="SMA Energy meter protocol">
+                    <md-content class="md-padding">
+                        <div layout="row" layout-xs="column">
+                            <md-switch ng-model="emeter.enabled" aria-label="SMA energy meter protocol enabled" flex="20" ng-change="showSaveButton('emeter')">
+                                SMA energy meter protocol
+                            </md-switch>
+                        </div>
+                
+                        <div layout="row" layout-xs="column">
+                            <md-input-container flex="25">
+                                <label>Multicast address</label>
+                                <input required name="emetermulticastaddress" ng-model="emeter.multicastAddress" ng-change="showSaveButton('emeter')">
+                                <div ng-messages="projectForm.emetermulticastaddress.$error">
+                                    <div ng-message="required">This is required.</div>
+                                </div>
+                            </md-input-container>
+                            <md-input-container flex="10">
+                                <label>Multicast port</label>
+                                <input required name="emetermulticastport" ng-model="emeter.multicastPort" ng-pattern="/^[0-9]{4}$/"
+                                    ng-change="showSaveButton('emeter')">
+                                <div ng-messages="projectForm.emetermulticastport.$error">
+                                    <div ng-message="required">This is required.</div>
+                                </div>
+                            </md-input-container>
+                        </div>
+                        <div layout="row" layout-xs="column">
+                            <md-input-container flex="25">
+                                <label>SusyID</label>
+                                <input required name="emetersusyid" ng-model="emeter.susyId" ng-change="showSaveButton('emeter')">
+                                <div ng-messages="projectForm.emetersusyid.$error">
+                                    <div ng-message="required">This is required.</div>
+                                </div>
+                            </md-input-container>
+                            <md-input-container flex="25">
+                                <label>Serial</label>
+                                <input required name="emeterserial" ng-model="emeter.serial" ng-change="showSaveButton('emeter')">
+                                <div ng-messages="projectForm.emeterserial.$error">
+                                    <div ng-message="required">This is required.</div>
+                                </div>
+                            </md-input-container>
+                        </div>
+                        <md-button ng-style="{'visibility': isEmeterSave?'visible':'hidden'}" class="md-raised md-primary"
+                            ng-click="saveConfiguration('emeter')">Save</md-button>
+                    </md-content>
+                </md-tab>
+                <md-tab label="Database">
+                    <md-content class="md-padding">
+                        <div layout="row" layout-xs="column">
+                            <md-switch ng-model="influx.enabled" aria-label="InfluxDB Enabled" flex="20" ng-change="showSaveButton('database')">
+                                Database
+                            </md-switch>
+                        </div>
+                        <div layout="row" layout-xs="column">
+                            <md-input-container flex="25">
+                                <label>InlfuxDB API Token</label>
+                                <input required name="influxapitoken" ng-model="influx.influxAPItoken" ng-change="showSaveButton('database')">
+                                <div ng-messages="projectForm.influxapitoken.$error">
+                                    <div ng-message="required">This is required.</div>
+                                </div>
+                            </md-input-container>
+                            <md-input-container flex="25">
+                                <label>InfluxDB URL</label>
+                                <input ng-model="influx.influxdatabase" ng-change="showSaveButton('database')">
+                                <div ng-messages="projectForm.influxdatabase.$error">
+                                    <div ng-message="required">This is required.</div>
+                                </div>
+                            </md-input-container>
+                        </div>
+                        <div layout="row" layout-xs="column">
+                            <md-input-container flex="25">
+                                <label>InfluxDB Organization</label>
+                                <input required name="influxorg" ng-model="influx.influxOrg" ng-change="showSaveButton('database')">
+                                <div ng-messages="projectForm.influxorg.$error">
+                                    <div ng-message="required">This is required.</div>
+                                </div>
+                            </md-input-container>
+                            <md-input-container flex="25">
+                                <label>InlfuxDB Bucket</label>
+                                <input required name="influxbucket" ng-model="influx.influxBucket" ng-change="showSaveButton('database')">
+                                <div ng-messages="projectForm.influxbucket.$error">
+                                    <div ng-message="required">This is required.</div>
+                                </div>
+                            </md-input-container>
+                        </div>
+                        <div layout="row" layout-xs="column">
+                            <md-input-container flex="25">
+                                <label>InfluxDB username</label>
+                                <input required name="influxusername" ng-model="influx.username" ng-change="showSaveButton('database')">
+                            </md-input-container>
+                            <md-input-container flex="25">
+                                <label>InfluxDB password</label>
+                                <input required name="influxpassword" ng-model="influx.password" ng-change="showSaveButton('database')">
+                            </md-input-container>
+                        </div>
+                        <md-button ng-style="{'visibility': isDatabaseSave?'visible':'hidden'}" class="md-raised md-primary" ng-click="saveConfiguration('database')">Save</md-button>
                     </md-content>
                 </md-tab>
                 <md-tab label="FTP">
@@ -468,7 +585,7 @@
                         </div>
                     </md-content>
                 </md-tab> -->
-                <md-tab label="Mobile communication">
+                <!-- <md-tab label="Mobile communication">
                     <md-content class="md-padding">
                         <div layout="row" layout-xs="column">
                             <md-switch ng-model="mobile.enabled" aria-label="Mobile Enabled" flex="20" ng-change="showSaveButton('mobile')">
@@ -509,7 +626,7 @@
                         </div>
                         <md-button ng-style="{'visibility': isMobileSave?'visible':'hidden'}" class="md-raised md-primary" ng-click="saveConfiguration('mobile')">Save</md-button>
                     </md-content>
-                </md-tab>
+                </md-tab> -->
                 <!-- <md-tab label="Userdata">
                       <ng-form name="forms.userdataForm">
                         <md-content class="md-padding">
